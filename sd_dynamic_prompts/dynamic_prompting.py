@@ -263,6 +263,27 @@ class Script(scripts.Script):
                             step=0.1,
                         )
 
+                    with gr.Group():
+                        is_word_shuffle = gr.Checkbox(
+                            label="Shuffle word order",
+                            value=False,
+                            elem_id=make_element_id("is-word-shuffle"),
+                        )
+
+                        gr.Markdown(
+                            """
+                            Use `$[item1, item2, item3]$` to mark sections that should be shuffled.
+
+                            **Examples:**
+                            - `a portrait of $[a cat, wearing a hat, in the park]$, highly detailed`
+                            - `$[red, blue, green]$ car in $[Tokyo, Paris, New York]$`
+
+                            **Note:** Content in parentheses like `(word:1.5)` is kept as a single unit.
+
+                            You can customize the shuffle delimiters in Settings → Dynamic Prompts.
+                            """,
+                        )
+
                     disable_negative_prompt = gr.Checkbox(
                         label="Don't apply to negative prompts",
                         value=True,
@@ -340,6 +361,7 @@ class Script(scripts.Script):
             max_generations,
             magic_model,
             magic_blocklist_regex,
+            is_word_shuffle,
         ]
 
     def process(
@@ -363,6 +385,7 @@ class Script(scripts.Script):
         max_generations: int,
         magic_model: str | None,
         magic_blocklist_regex: str | None,
+        is_word_shuffle: bool,
     ):
         if not is_enabled:
             logger.debug("Dynamic prompts disabled - exiting")
@@ -450,6 +473,11 @@ class Script(scripts.Script):
                     magic_blocklist_regex=magic_blocklist_regex,
                     batch_size=magicprompt_batch_size,
                     device=get_magic_prompt_device(),
+                )
+                .set_is_word_shuffle(
+                    is_word_shuffle=is_word_shuffle,
+                    shuffle_start=opts.dp_parser_shuffle_start,
+                    shuffle_end=opts.dp_parser_shuffle_end,
                 )
                 .set_is_dummy(False)
                 .set_unlink_seed_from_prompt(unlink_seed_from_prompt)
