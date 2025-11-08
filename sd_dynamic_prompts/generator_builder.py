@@ -34,7 +34,6 @@ class GeneratorBuilder:
         self._is_combinatorial = False
         self._is_magic_prompt = False
         self._is_attention_grabber = False
-        self._is_word_shuffle = False
 
         self._combinatorial_batches = 1
         self._magic_model = None
@@ -43,8 +42,6 @@ class GeneratorBuilder:
         self._magic_blocklist_regex = None
         self._min_attention = 1.1
         self._max_attention = 1.5
-        self._shuffle_start = "$["
-        self._shuffle_end = "]$"
         self._device = 0
         self._ignore_whitespace = ignore_whitespace
         self._unlink_seed_from_prompt = False
@@ -89,17 +86,6 @@ class GeneratorBuilder:
         self._is_attention_grabber = is_attention_grabber
         self._min_attention = min_attention
         self._max_attention = max_attention
-        return self
-
-    def set_is_word_shuffle(
-        self,
-        is_word_shuffle=True,
-        shuffle_start="$[",
-        shuffle_end="]$",
-    ):
-        self._is_word_shuffle = is_word_shuffle
-        self._shuffle_start = shuffle_start
-        self._shuffle_end = shuffle_end
         return self
 
     def set_is_jinja_template(self, is_jinja_template=True, limit_prompts=False):
@@ -200,18 +186,6 @@ class GeneratorBuilder:
                 )
             except ImportError as ie:
                 logger.error(f"Not using AttentionGenerator: {ie}")
-
-        if self._is_word_shuffle:
-            from sd_dynamic_prompts.word_shuffle_generator import (
-                WordShuffleGenerator,
-            )
-
-            generator = WordShuffleGenerator(
-                generator,
-                seed=self._seed,
-                shuffle_start=self._shuffle_start,
-                shuffle_end=self._shuffle_end,
-            )
 
         if self._should_freeze_prompt:
             generator = FrozenPromptGenerator(generator)

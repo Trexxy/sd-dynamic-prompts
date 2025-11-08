@@ -99,24 +99,6 @@ def on_ui_settings():
         ),
     )
 
-    shared.opts.add_option(
-        key="dp_parser_shuffle_start",
-        info=shared.OptionInfo(
-            "$[",
-            label="String to mark start of shuffleable section, e.g. $[part1, part2, part3]$",
-            section=section,
-        ),
-    )
-
-    shared.opts.add_option(
-        key="dp_parser_shuffle_end",
-        info=shared.OptionInfo(
-            "]$",
-            label="String to mark end of shuffleable section, e.g. $[part1, part2, part3]$",
-            section=section,
-        ),
-    )
-
     magic_models = load_magicprompt_models()
     shared.opts.add_option(
         key="dp_magicprompt_default_model",
