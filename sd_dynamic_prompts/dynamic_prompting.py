@@ -263,12 +263,6 @@ class Script(scripts.Script):
                             step=0.1,
                         )
 
-                    is_word_shuffle = gr.Checkbox(
-                        label="Word shuffle - randomize words in ~[ ]~ sections",
-                        value=False,
-                        elem_id=make_element_id("is-word-shuffle"),
-                    )
-
                     disable_negative_prompt = gr.Checkbox(
                         label="Don't apply to negative prompts",
                         value=True,
@@ -336,7 +330,6 @@ class Script(scripts.Script):
             is_attention_grabber,
             min_attention,
             max_attention,
-            is_word_shuffle,
             magic_prompt_length,
             magic_temp_value,
             use_fixed_seed,
@@ -360,7 +353,6 @@ class Script(scripts.Script):
         is_attention_grabber: bool,
         min_attention: float,
         max_attention: float,
-        is_word_shuffle: bool,
         magic_prompt_length: int,
         magic_temp_value: float,
         use_fixed_seed: bool,
@@ -445,7 +437,6 @@ class Script(scripts.Script):
                     min_attention,
                     max_attention,
                 )
-                .set_is_word_shuffle(is_word_shuffle)
                 .set_is_jinja_template(
                     enable_jinja_templates,
                     limit_prompts=self._limit_jinja_prompts,

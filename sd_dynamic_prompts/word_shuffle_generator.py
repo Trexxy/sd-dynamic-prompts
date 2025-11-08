@@ -13,6 +13,7 @@ class WordShuffleGenerator(PromptGenerator):
     """
     Generator that randomizes words within ~[ ]~ sections.
     This runs after wildcard expansion.
+    Words are split by commas, and anything inside parentheses is treated as a single word.
     """
 
     def __init__(self, generator: PromptGenerator):
@@ -29,9 +30,40 @@ class WordShuffleGenerator(PromptGenerator):
             return None
         return [self._shuffle_words(p) for p in prompts]
 
+    def _split_by_comma_respecting_parens(self, text: str) -> list[str]:
+        """
+        Split text by commas, but treat anything inside parentheses as a single unit.
+        For example: "happy, (very, very sad), joyful" -> ["happy", "(very, very sad)", "joyful"]
+        """
+        words = []
+        current_word = ""
+        paren_depth = 0
+
+        for char in text:
+            if char == "(":
+                paren_depth += 1
+                current_word += char
+            elif char == ")":
+                paren_depth -= 1
+                current_word += char
+            elif char == "," and paren_depth == 0:
+                # We're at a comma outside of parentheses, so split here
+                if current_word.strip():
+                    words.append(current_word.strip())
+                current_word = ""
+            else:
+                current_word += char
+
+        # Don't forget the last word
+        if current_word.strip():
+            words.append(current_word.strip())
+
+        return words
+
     def _shuffle_words(self, prompt: str) -> str:
         """
         Shuffle words within ~[ ]~ sections while preserving A1111 special syntax.
+        Words are split by commas only, and parentheses are respected.
         """
         # Remove A1111 special syntax first
         prompt, special_chunks = remove_a1111_special_syntax_chunks(prompt)
@@ -41,22 +73,15 @@ class WordShuffleGenerator(PromptGenerator):
 
         def shuffle_section(match):
             content = match.group(1)
-            # Split on comma or whitespace
-            # First try splitting by comma
-            if "," in content:
-                words = [w.strip() for w in content.split(",") if w.strip()]
-            else:
-                # Otherwise split by whitespace
-                words = content.split()
+
+            # Split by comma while respecting parentheses
+            words = self._split_by_comma_respecting_parens(content)
 
             # Shuffle the words
             random.shuffle(words)
 
-            # Rejoin with appropriate separator
-            if "," in content:
-                return ", ".join(words)
-            else:
-                return " ".join(words)
+            # Rejoin with commas
+            return ", ".join(words)
 
         # Replace all ~[ ]~ sections with shuffled versions
         result = re.sub(pattern, shuffle_section, prompt)
