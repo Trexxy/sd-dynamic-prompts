@@ -34,6 +34,7 @@ class GeneratorBuilder:
         self._is_combinatorial = False
         self._is_magic_prompt = False
         self._is_attention_grabber = False
+        self._is_word_shuffle = False
 
         self._combinatorial_batches = 1
         self._magic_model = None
@@ -65,6 +66,7 @@ class GeneratorBuilder:
             is_attention_grabber: {self._is_attention_grabber}
             min_attention: {self._min_attention}
             max_attention: {self._max_attention}
+            is_word_shuffle: {self._is_word_shuffle}
 
         """,
         )
@@ -86,6 +88,10 @@ class GeneratorBuilder:
         self._is_attention_grabber = is_attention_grabber
         self._min_attention = min_attention
         self._max_attention = max_attention
+        return self
+
+    def set_is_word_shuffle(self, is_word_shuffle=True):
+        self._is_word_shuffle = is_word_shuffle
         return self
 
     def set_is_jinja_template(self, is_jinja_template=True, limit_prompts=False):
@@ -156,6 +162,13 @@ class GeneratorBuilder:
             generator = self.create_jinja_generator(self._context)
         else:
             generator = self.create_basic_generator()
+
+        if self._is_word_shuffle:
+            from sd_dynamic_prompts.word_shuffle_generator import (
+                WordShuffleGenerator,
+            )
+
+            generator = WordShuffleGenerator(generator)
 
         if self._is_magic_prompt:
             from sd_dynamic_prompts.magic_prompt import (
