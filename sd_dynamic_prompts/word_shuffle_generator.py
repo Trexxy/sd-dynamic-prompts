@@ -64,11 +64,12 @@ class WordShuffleGenerator(PromptGenerator):
         """
         Shuffle words within ~[ ]~ sections while preserving A1111 special syntax.
         Words are split by commas only, and parentheses are respected.
+        Supports multiline sections.
         """
         # Remove A1111 special syntax first
         prompt, special_chunks = remove_a1111_special_syntax_chunks(prompt)
 
-        # Pattern to find ~[ ]~ sections
+        # Pattern to find ~[ ]~ sections (DOTALL flag allows matching across newlines)
         pattern = r"~\[(.*?)\]~"
 
         def shuffle_section(match):
@@ -84,7 +85,8 @@ class WordShuffleGenerator(PromptGenerator):
             return ", ".join(words)
 
         # Replace all ~[ ]~ sections with shuffled versions
-        result = re.sub(pattern, shuffle_section, prompt)
+        # re.DOTALL makes . match newlines too
+        result = re.sub(pattern, shuffle_section, prompt, flags=re.DOTALL)
 
         # Restore A1111 special syntax
         return append_chunks(result, special_chunks)
