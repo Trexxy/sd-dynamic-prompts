@@ -82,7 +82,7 @@ class WordShuffleGenerator(PromptGenerator):
             random.shuffle(words)
 
             # Rejoin with commas
-            return ", ".join(words)
+            return ", ".join(words) + ","
 
         # Replace all ~[ ]~ sections with shuffled versions
         # re.DOTALL makes . match newlines too
