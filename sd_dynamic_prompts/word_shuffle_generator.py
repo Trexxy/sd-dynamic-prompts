@@ -65,6 +65,8 @@ class WordShuffleGenerator(PromptGenerator):
         Shuffle words within ~[ ]~ sections while preserving A1111 special syntax.
         Words are split by commas only, and parentheses are respected.
         Supports multiline sections.
+        Words with priority prefix (¤1, ¤2, etc.) are ordered by priority,
+        with words of the same priority shuffled among themselves.
         """
         # Remove A1111 special syntax first
         prompt, special_chunks = remove_a1111_special_syntax_chunks(prompt)
@@ -78,11 +80,39 @@ class WordShuffleGenerator(PromptGenerator):
             # Split by comma while respecting parentheses
             words = self._split_by_comma_respecting_parens(content)
 
-            # Shuffle the words
-            random.shuffle(words)
+            # Pattern to match priority prefix like ¤1, ¤2, etc.
+            priority_pattern = r"^¤(\d+)(.*)$"
+
+            # Group words by priority
+            prioritized = {}  # {priority_number: [words with that priority]}
+            unprioritized = []  # words without priority
+
+            for word in words:
+                match_priority = re.match(priority_pattern, word)
+                if match_priority:
+                    priority = int(match_priority.group(1))
+                    word_without_prefix = match_priority.group(2)
+                    if priority not in prioritized:
+                        prioritized[priority] = []
+                    prioritized[priority].append(word_without_prefix)
+                else:
+                    unprioritized.append(word)
+
+            # Build result by processing priorities in order
+            result = []
+
+            # Sort priority keys and process each group
+            for priority in sorted(prioritized.keys()):
+                group = prioritized[priority]
+                random.shuffle(group)
+                result.extend(group)
+
+            # Shuffle and add unprioritized words last
+            random.shuffle(unprioritized)
+            result.extend(unprioritized)
 
             # Rejoin with commas
-            return ", ".join(words) + ","
+            return ", ".join(result) + ","
 
         # Replace all ~[ ]~ sections with shuffled versions
         # re.DOTALL makes . match newlines too
