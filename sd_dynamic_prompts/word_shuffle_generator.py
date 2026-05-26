@@ -77,6 +77,9 @@ class WordShuffleGenerator(PromptGenerator):
         def shuffle_section(match):
             content = match.group(1)
 
+            if re.search(r'\bBREAK\b', content, re.IGNORECASE):
+                return match.group(0)
+
             # Split by comma while respecting parentheses
             words = self._split_by_comma_respecting_parens(content)
 
