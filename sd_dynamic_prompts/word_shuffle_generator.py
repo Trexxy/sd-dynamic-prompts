@@ -60,6 +60,38 @@ class WordShuffleGenerator(PromptGenerator):
 
         return words
 
+    def _shuffle_segment(self, text: str) -> str:
+        """
+        Shuffle a single comma-separated segment, respecting parentheses and priority prefixes.
+        Returns the shuffled words joined by ", " with no trailing comma, or "" if empty.
+        """
+        words = self._split_by_comma_respecting_parens(text)
+        if not words:
+            return ""
+
+        priority_pattern = r"^¤(\d+)(.*)$"
+        prioritized = {}
+        unprioritized = []
+
+        for word in words:
+            m = re.match(priority_pattern, word)
+            if m:
+                priority = int(m.group(1))
+                prioritized.setdefault(priority, []).append(m.group(2))
+            else:
+                unprioritized.append(word)
+
+        result = []
+        for priority in sorted(prioritized.keys()):
+            group = prioritized[priority]
+            random.shuffle(group)
+            result.extend(group)
+
+        random.shuffle(unprioritized)
+        result.extend(unprioritized)
+
+        return ", ".join(result)
+
     def _shuffle_words(self, prompt: str) -> str:
         """
         Shuffle words within ~[ ]~ sections while preserving A1111 special syntax.
@@ -67,59 +99,28 @@ class WordShuffleGenerator(PromptGenerator):
         Supports multiline sections.
         Words with priority prefix (¤1, ¤2, etc.) are ordered by priority,
         with words of the same priority shuffled among themselves.
+        BREAK splits a section into independently shuffled segments.
         """
-        # Remove A1111 special syntax first
         prompt, special_chunks = remove_a1111_special_syntax_chunks(prompt)
 
-        # Pattern to find ~[ ]~ sections (DOTALL flag allows matching across newlines)
         pattern = r"~\[(.*?)\]~"
 
         def shuffle_section(match):
             content = match.group(1)
 
-            if re.search(r'\bBREAK\b', content, re.IGNORECASE):
-                return match.group(0)
+            # Split on BREAK tokens, keeping them as delimiters
+            parts = re.split(r"(\bBREAK\b)", content, flags=re.IGNORECASE)
 
-            # Split by comma while respecting parentheses
-            words = self._split_by_comma_respecting_parens(content)
-
-            # Pattern to match priority prefix like ¤1, ¤2, etc.
-            priority_pattern = r"^¤(\d+)(.*)$"
-
-            # Group words by priority
-            prioritized = {}  # {priority_number: [words with that priority]}
-            unprioritized = []  # words without priority
-
-            for word in words:
-                match_priority = re.match(priority_pattern, word)
-                if match_priority:
-                    priority = int(match_priority.group(1))
-                    word_without_prefix = match_priority.group(2)
-                    if priority not in prioritized:
-                        prioritized[priority] = []
-                    prioritized[priority].append(word_without_prefix)
+            output_parts = []
+            for part in parts:
+                if part.strip().upper() == "BREAK":
+                    output_parts.append("BREAK")
                 else:
-                    unprioritized.append(word)
+                    shuffled = self._shuffle_segment(part)
+                    if shuffled:
+                        output_parts.append(shuffled)
 
-            # Build result by processing priorities in order
-            result = []
+            return ", ".join(output_parts) + ","
 
-            # Sort priority keys and process each group
-            for priority in sorted(prioritized.keys()):
-                group = prioritized[priority]
-                random.shuffle(group)
-                result.extend(group)
-
-            # Shuffle and add unprioritized words last
-            random.shuffle(unprioritized)
-            result.extend(unprioritized)
-
-            # Rejoin with commas
-            return ", ".join(result) + ","
-
-        # Replace all ~[ ]~ sections with shuffled versions
-        # re.DOTALL makes . match newlines too
         result = re.sub(pattern, shuffle_section, prompt, flags=re.DOTALL)
-
-        # Restore A1111 special syntax
         return append_chunks(result, special_chunks)
